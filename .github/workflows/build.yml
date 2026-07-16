@@ -110,16 +110,9 @@ jobs:
         fi
         echo "Menggunakan profil: $TARGET_PROFILE"
         
-        # Penyesuaian Paket Super-Lite untuk Flash 4MB:
-        # Menghapus paket IPv6, HTTPS (uhttpd-mod-tls), ppp-mod-pppoe ekstra, dan rpc-mod-rrdns yang berat
+        # Penyesuaian Paket Super-Lite (hostapd-mini DIHAPUS karena bentrok dengan wpad-basic-wolfssl)
         make image PROFILE="$TARGET_PROFILE" \
-        PACKAGES="luci uhttpd dnsmasq firewall dropbear hostapd-mini wpad-basic-wolfssl ppp ppp-mod-pppoe \
+        PACKAGES="luci uhttpd dnsmasq firewall dropbear wpad-basic-wolfssl ppp ppp-mod-pppoe \
         -ip6tables -odhcpd -odhcp6c -ipv6helper -opkg -wget -curl -ppp-mod-pppoa -kmod-usb-core -kmod-usb2 \
         -luci-app-opkg -luci-proto-ipv6 -luci-proto-ppp -libustrip" \
         FILES="files"
-
-    - name: Upload Firmware Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: OpenWrt-Lite-TL-WR840N-V6
-        path: openwrt-ib/bin/targets/ramips/mt76x8/*.bin
