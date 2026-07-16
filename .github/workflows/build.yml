@@ -101,7 +101,6 @@ jobs:
     - name: Compile Firmware (Make Image)
       run: |
         cd openwrt-ib
-        # Cek profil yang tersedia secara dinamis
         PROFILES=$(make info | grep -i "wr840n" | awk -F: '{print $1}')
         echo "Profil yang ditemukan: $PROFILES"
         
@@ -111,8 +110,12 @@ jobs:
         fi
         echo "Menggunakan profil: $TARGET_PROFILE"
         
+        # Penyesuaian Paket Super-Lite untuk Flash 4MB:
+        # Menghapus paket IPv6, HTTPS (uhttpd-mod-tls), ppp-mod-pppoe ekstra, dan rpc-mod-rrdns yang berat
         make image PROFILE="$TARGET_PROFILE" \
-        PACKAGES="luci uhttpd dnsmasq firewall dropbear hostapd-mini wpad-basic ppp ppp-mod-pppoe -ip6tables -odhcpd -odhcp6c -ipv6helper -opkg -wget -curl -ppp-mod-pppoa -kmod-usb-core -kmod-usb2 -luci-app-opkg" \
+        PACKAGES="luci uhttpd dnsmasq firewall dropbear hostapd-mini wpad-basic-wolfssl ppp ppp-mod-pppoe \
+        -ip6tables -odhcpd -odhcp6c -ipv6helper -opkg -wget -curl -ppp-mod-pppoa -kmod-usb-core -kmod-usb2 \
+        -luci-app-opkg -luci-proto-ipv6 -luci-proto-ppp -libustrip" \
         FILES="files"
 
     - name: Upload Firmware Artifacts
