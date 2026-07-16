@@ -116,15 +116,20 @@ jobs:
         EOF
         chmod +x files/etc/uci-defaults/99-custom-settings
 
-    - name: Compile Firmware (Make Image)
-      run: |
-        cd openwrt-ib
-        make image PROFILE="tplink_tl-wr840n-v6" \
-        PACKAGES="luci uhttpd dnsmasq firewall dropbear hostapd-mini wpad-basic ppp ppp-mod-pppoe -ip6tables -odhcpd -odhcp6c -ipv6helper -opkg -wget -curl -ppp-mod-pppoa -kmod-usb-core -kmod-usb2 -luci-app-opkg" \
-        FILES="files"
+  - name: Compile Firmware (Make Image)
+   run: |
+     cd openwrt-ib
+     # Cek profil yang mirip dengan wr840n
+     PROFILES=$(make info | grep -i "wr840n" | awk -F: '{print $1}')
+     echo "Profil yang ditemukan: $PROFILES"
 
-    - name: Upload Firmware Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: OpenWrt-Lite-TL-WR840N-V6
-        path: openwrt-ib/bin/targets/ramips/mt76x8/*.bin
+     # Ambil profil pertama yang ditemukan, jika tidak ada gunakan default tplink_tl-wr840n-v6
+     TARGET_PROFILE=$(echo "$PROFILES" | head -n 1)
+     if [ -z "$TARGET_PROFILE" ]; then
+       TARGET_PROFILE="tplink_tl-wr840n-v6"
+     fi
+     echo "Menggunakan profil: $TARGET_PROFILE"
+
+     make image PROFILE="$TARGET_PROFILE" \
+     PACKAGES="luci uhttpd dnsmasq firewall dropbear hostapd-mini wpad-basic ppp ppp-mod-pppoe -ip6tables -odhcpd -odhcp6c -ipv6helper -opkg -wget -curl -ppp-mod-pppoa -kmod-usb-core -kmod-usb2 -luci-app-opkg" \
+     FILES="files"
