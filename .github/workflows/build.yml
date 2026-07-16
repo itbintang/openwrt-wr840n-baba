@@ -3,6 +3,9 @@ name: Build OpenWrt Lite TL-WR840N
 on:
   workflow_dispatch:
 
+# Memaksa GitHub memberikan izin baca-tulis penuh untuk workflow ini
+permissions: write-all
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -110,9 +113,14 @@ jobs:
         fi
         echo "Menggunakan profil: $TARGET_PROFILE"
         
-        # Penyesuaian Paket Super-Lite (hostapd-mini DIHAPUS karena bentrok dengan wpad-basic-wolfssl)
         make image PROFILE="$TARGET_PROFILE" \
         PACKAGES="luci uhttpd dnsmasq firewall dropbear wpad-basic-wolfssl ppp ppp-mod-pppoe \
         -ip6tables -odhcpd -odhcp6c -ipv6helper -opkg -wget -curl -ppp-mod-pppoa -kmod-usb-core -kmod-usb2 \
         -luci-app-opkg -luci-proto-ipv6 -luci-proto-ppp -libustrip" \
         FILES="files"
+
+    - name: Upload Firmware Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenWrt-Lite-TL-WR840N-V6
+        path: openwrt-ib/bin/targets/ramips/mt76x8/*.bin
