@@ -3,7 +3,6 @@ name: Build OpenWrt Lite TL-WR840N
 on:
   workflow_dispatch:
 
-# Memaksa GitHub memberikan izin baca-tulis penuh untuk workflow ini
 permissions: write-all
 
 jobs:
@@ -119,8 +118,19 @@ jobs:
         -luci-app-opkg -luci-proto-ipv6 -luci-proto-ppp -libustrip" \
         FILES="files"
 
-    - name: Upload Firmware Artifacts
-      uses: actions/upload-artifact@v4
+    # LANGKAH BARU: Mengunggah hasil kompilasi langsung ke GitHub Releases
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
       with:
-        name: OpenWrt-Lite-TL-WR840N-V6
-        path: openwrt-ib/bin/targets/ramips/mt76x8/*.bin
+        tag_name: v1.0.${{ github.run_number }}
+        name: OpenWrt Lite TL-WR840N V6.20 (Build #${{ github.run_number }})
+        body: |
+          Firmware OpenWrt Lite siap pakai untuk TP-Link TL-WR840N V6.
+          - IP LAN Default: 192.168.10.1
+          - SSID Wi-Fi: RT-RW NET - Kencang
+          - Password Wi-Fi: internet123
+          - Fitur: Flow Offloading Aktif, Beban RAM Ringan.
+        draft: false
+        prerelease: false
+        files: |
+          openwrt-ib/bin/targets/ramips/mt76x8/*.bin
