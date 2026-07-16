@@ -1,7 +1,7 @@
 name: Build OpenWrt Lite TL-WR840N
 
 on:
-  workflow_dispatch: # Memungkinkan Anda menjalankan build secara manual klik tombol
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,11 +16,11 @@ jobs:
         sudo apt update
         sudo apt install -y build-essential git subversion libncurses5-dev zlib1g-dev gawk flex gettext unzip wget python3 rsync
 
-    - name: Download & Extract Image Builder
+    - name: Download & Extract Image Builder (OpenWrt 21.02.7)
       run: |
-        wget https://downloads.openwrt.org/releases/19.07.10/targets/ramips/mt76x8/openwrt-imagebuilder-19.07.10-ramips-mt76x8.Linux-x86_64.tar.xz
-        tar -xf openwrt-imagebuilder-19.07.10-ramips-mt76x8.Linux-x86_64.tar.xz
-        mv openwrt-imagebuilder-19.07.10-ramips-mt76x8.Linux-x86_64 openwrt-ib
+        wget https://downloads.openwrt.org/releases/21.02.7/targets/ramips/mt76x8/openwrt-imagebuilder-21.02.7-ramips-mt76x8.Linux-x86_64.tar.xz
+        tar -xf openwrt-imagebuilder-21.02.7-ramips-mt76x8.Linux-x86_64.tar.xz
+        mv openwrt-imagebuilder-21.02.7-ramips-mt76x8.Linux-x86_64 openwrt-ib
 
     - name: Create Custom Configuration Files
       run: |
@@ -31,7 +31,7 @@ jobs:
         # 1. Network Config
         cat << 'EOF' > files/etc/config/network
         config interface 'loopback'
-        	option ifname 'lo'
+        	option device 'lo'
         	option proto 'static'
         	option ipaddr '127.0.0.1'
         	option netmask '255.0.0.0'
@@ -40,33 +40,15 @@ jobs:
         	option ula_prefix 'fd53:1a3a:3032::/48'
 
         config interface 'lan'
-        	option type 'bridge'
-        	option ifname 'eth0.1'
         	option proto 'static'
         	option ipaddr '192.168.10.1'
         	option netmask '255.255.255.0'
-        	option ip6assign '60'
         	list dns '1.1.1.1'
         	list dns '8.8.8.8'
 
         config interface 'wan'
-        	option ifname 'eth0.2'
+        	option device 'wan'
         	option proto 'dhcp'
-
-        config switch
-        	option name 'switch0'
-        	option reset '1'
-        	option enable_vlan '1'
-
-        config switch_vlan
-        	option device 'switch0'
-        	option vlan '1'
-        	option ports '1 2 3 4 6t'
-
-        config switch_vlan
-        	option device 'switch0'
-        	option vlan '2'
-        	option ports '0 6t'
         EOF
 
         # 2. Wireless Config (SSID & Password)
@@ -116,20 +98,25 @@ jobs:
         EOF
         chmod +x files/etc/uci-defaults/99-custom-settings
 
-  - name: Compile Firmware (Make Image)
-   run: |
-     cd openwrt-ib
-     # Cek profil yang mirip dengan wr840n
-     PROFILES=$(make info | grep -i "wr840n" | awk -F: '{print $1}')
-     echo "Profil yang ditemukan: $PROFILES"
+    - name: Compile Firmware (Make Image)
+      run: |
+        cd openwrt-ib
+        # Cek profil yang tersedia secara dinamis
+        PROFILES=$(make info | grep -i "wr840n" | awk -F: '{print $1}')
+        echo "Profil yang ditemukan: $PROFILES"
+        
+        TARGET_PROFILE=$(echo "$PROFILES" | head -n 1)
+        if [ -z "$TARGET_PROFILE" ]; then
+          TARGET_PROFILE="tplink_tl-wr840n-v6"
+        fi
+        echo "Menggunakan profil: $TARGET_PROFILE"
+        
+        make image PROFILE="$TARGET_PROFILE" \
+        PACKAGES="luci uhttpd dnsmasq firewall dropbear hostapd-mini wpad-basic ppp ppp-mod-pppoe -ip6tables -odhcpd -odhcp6c -ipv6helper -opkg -wget -curl -ppp-mod-pppoa -kmod-usb-core -kmod-usb2 -luci-app-opkg" \
+        FILES="files"
 
-     # Ambil profil pertama yang ditemukan, jika tidak ada gunakan default tplink_tl-wr840n-v6
-     TARGET_PROFILE=$(echo "$PROFILES" | head -n 1)
-     if [ -z "$TARGET_PROFILE" ]; then
-       TARGET_PROFILE="tplink_tl-wr840n-v6"
-     fi
-     echo "Menggunakan profil: $TARGET_PROFILE"
-
-     make image PROFILE="$TARGET_PROFILE" \
-     PACKAGES="luci uhttpd dnsmasq firewall dropbear hostapd-mini wpad-basic ppp ppp-mod-pppoe -ip6tables -odhcpd -odhcp6c -ipv6helper -opkg -wget -curl -ppp-mod-pppoa -kmod-usb-core -kmod-usb2 -luci-app-opkg" \
-     FILES="files"
+    - name: Upload Firmware Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenWrt-Lite-TL-WR840N-V6
+        path: openwrt-ib/bin/targets/ramips/mt76x8/*.bin
